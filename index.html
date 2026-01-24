@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desafio 40k - Planner</title>
+    <style>
+        :root {
+            --primary: #2ecc71;
+            --bg: #f4f4f9;
+            --text: #333;
+            --card-bg: #fff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { margin-bottom: 5px; text-align: center; }
+        .subtitle { font-size: 0.9em; color: #666; margin-bottom: 20px; text-align: center; }
+
+        /* Placar fixo no topo */
+        .dashboard {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        .total-label { font-size: 0.9em; color: #777; }
+        .total-value { font-size: 1.8em; font-weight: bold; color: var(--primary); }
+        .progress-bar-bg {
+            background: #eee;
+            height: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Grids de números */
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+        }
+
+        h2 { border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-top: 30px; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* 5 colunas como no papel */
+            gap: 8px;
+        }
+
+        .btn-deposit {
+            background: var(--card-bg);
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 12px 0;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none; /* Evita selecionar texto no celular */
+        }
+
+        .btn-deposit:active { transform: scale(0.95); }
+
+        /* Estado "Pago" */
+        .btn-deposit.checked {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(46, 204, 113, 0.4);
+        }
+
+        .actions { margin-top: 40px; margin-bottom: 50px; }
+        .btn-reset {
+            background: transparent;
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* Mobile tweaks */
+        @media (max-width: 400px) {
+            .grid { gap: 5px; }
+            .btn-deposit { font-size: 12px; padding: 10px 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard">
+        <div class="total-label">Total Guardado</div>
+        <div class="total-value" id="totalDisplay">R$ 0,00</div>
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progressBar"></div>
+        </div>
+        <div style="font-size: 0.8em; margin-top: 5px; color:#888;">Meta: R$ 40.200,00</div>
+    </div>
+
+    <div class="container">
+        <h2>Parte 1 (R$ 1 a 200)</h2>
+        <div class="grid" id="gridPart1"></div>
+
+        <h2>Parte 2 (R$ 1 a 200)</h2>
+        <div class="grid" id="gridPart2"></div>
+
+        <div class="actions">
+            <button class="btn-reset" onclick="resetData()">Zerar Tudo (Reiniciar)</button>
+        </div>
+        
+        <p style="text-align: center; font-style: italic; color: #aaa; font-size: 0.9em;">
+            "Ebenézer: Até aqui nos ajudou o Senhor."
+        </p>
+    </div>
+
+    <script>
+        // Configuração
+        const totalMeta = 40200;
+        let savedData = JSON.parse(localStorage.getItem('desafio400_data')) || { part1: [], part2: [] };
+
+        // Inicialização
+        function init() {
+            renderGrid('gridPart1', 'part1');
+            renderGrid('gridPart2', 'part2');
+            updateDashboard();
+        }
+
+        // Renderiza os botões dinamicamente
+        function renderGrid(elementId, partKey) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = ''; // Limpa antes de renderizar
+
+            for (let i = 1; i <= 200; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'btn-deposit';
+                btn.textContent = i;
+                
+                // Verifica se já estava marcado
+                if (savedData[partKey].includes(i)) {
+                    btn.classList.add('checked');
+                }
+
+                // Evento de Click
+                btn.onclick = () => toggleDeposit(i, partKey, btn);
+                container.appendChild(btn);
+            }
+        }
+
+        // Lógica de Marcar/Desmarcar
+        function toggleDeposit(value, partKey, btnElement) {
+            const index = savedData[partKey].indexOf(value);
+
+            if (index === -1) {
+                // Adiciona
+                savedData[partKey].push(value);
+                btnElement.classList.add('checked');
+            } else {
+                // Remove
+                savedData[partKey].splice(index, 1);
+                btnElement.classList.remove('checked');
+            }
+
+            saveAndUpdate();
+        }
+
+        // Salvar no Navegador e Atualizar Tela
+        function saveAndUpdate() {
+            localStorage.setItem('desafio400_data', JSON.stringify(savedData));
+            updateDashboard();
+        }
+
+        // Calcular Totais
+        function updateDashboard() {
+            const sumPart1 = savedData.part1.reduce((a, b) => a + b, 0);
+            const sumPart2 = savedData.part2.reduce((a, b) => a + b, 0);
+            const total = sumPart1 + sumPart2;
+
+            // Formatação R$
+            document.getElementById('totalDisplay').textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            
+            // Barra de Progresso
+            const percentage = (total / totalMeta) * 100;
+            document.getElementById('progressBar').style.width = percentage + '%';
+        }
+
+        // Função de Reset
+        function resetData() {
+            if(confirm("Tem certeza que deseja apagar todo o progresso?")) {
+                savedData = { part1: [], part2: [] };
+                saveAndUpdate();
+                init(); // Re-renderiza tudo limpo
+            }
+        }
+
+        // Inicia o App
+        init();
+    </script>
+</body>
+</html>
