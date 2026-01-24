@@ -2,14 +2,16 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Desafio 40k - Planner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Desafio 40k - Calendário</title>
     <style>
         :root {
             --primary: #2ecc71;
+            --secondary: #27ae60;
             --bg: #f4f4f9;
             --text: #333;
             --card-bg: #fff;
+            --danger: #e74c3c;
         }
 
         body {
@@ -17,97 +19,142 @@
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        h1 { margin-bottom: 5px; text-align: center; }
-        .subtitle { font-size: 0.9em; color: #666; margin-bottom: 20px; text-align: center; }
-
-        /* Placar fixo no topo */
+        /* --- Dashboard --- */
         .dashboard {
             background: var(--card-bg);
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
             position: sticky;
-            top: 10px;
+            top: 5px;
             z-index: 100;
             width: 100%;
             max-width: 600px;
             text-align: center;
-            border: 1px solid #ddd;
+            border: 1px solid rgba(0,0,0,0.05);
         }
 
-        .total-label { font-size: 0.9em; color: #777; }
-        .total-value { font-size: 1.8em; font-weight: bold; color: var(--primary); }
+        .config-area {
+            background: #f1f2f6;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .config-area label { font-size: 0.85em; color: #666; font-weight: bold; }
+        
+        input[type="date"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-family: inherit;
+            width: 100%;
+            max-width: 200px;
+            text-align: center;
+        }
+
+        .total-value { font-size: 2.2em; font-weight: 800; color: var(--text); margin: 5px 0; }
+        .total-label { font-size: 0.8em; color: #999; text-transform: uppercase; letter-spacing: 1px; }
+
         .progress-bar-bg {
             background: #eee;
             height: 10px;
             border-radius: 5px;
-            margin-top: 10px;
             overflow: hidden;
+            margin-top: 10px;
         }
         .progress-bar-fill {
             height: 100%;
-            background: var(--primary);
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
             width: 0%;
-            transition: width 0.3s ease;
+            transition: width 0.5s ease;
         }
 
-        /* Grids de números */
-        .container {
-            width: 100%;
-            max-width: 600px;
-            margin-top: 20px;
+        /* --- Grids --- */
+        .container { width: 100%; max-width: 600px; padding-bottom: 60px; }
+        
+        h2 { 
+            font-size: 1.1em; 
+            color: #666; 
+            border-bottom: 2px solid #eee; 
+            padding-bottom: 8px; 
+            margin-top: 30px; 
         }
-
-        h2 { border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-top: 30px; }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr); /* 5 colunas como no papel */
-            gap: 8px;
+            grid-template-columns: repeat(4, 1fr); /* 4 colunas para caber a data */
+            gap: 6px;
         }
 
-        .btn-deposit {
+        /* Estilo da Célula com Data */
+        .cell {
             background: var(--card-bg);
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            padding: 12px 0;
-            font-size: 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 8px 2px;
             cursor: pointer;
-            transition: all 0.2s;
-            user-select: none; /* Evita selecionar texto no celular */
+            text-align: center;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 45px;
         }
 
-        .btn-deposit:active { transform: scale(0.95); }
+        .cell-date { font-size: 0.9em; font-weight: bold; color: #555; margin-bottom: 2px; }
+        .cell-value { font-size: 0.75em; color: #999; }
 
-        /* Estado "Pago" */
-        .btn-deposit.checked {
+        .cell.checked {
             background-color: var(--primary);
-            color: white;
-            border-color: var(--primary);
-            font-weight: bold;
-            box-shadow: 0 2px 5px rgba(46, 204, 113, 0.4);
+            border-color: var(--secondary);
+            box-shadow: 0 2px 5px rgba(46, 204, 113, 0.3);
+        }
+        .cell.checked .cell-date, .cell.checked .cell-value { color: white; }
+
+        /* Destaque para o dia de HOJE */
+        .cell.today {
+            border: 2px solid #3498db;
+            background-color: #ebf5fb;
+        }
+        .cell.today.checked {
+            background-color: var(--primary);
+            border: 2px solid #27ae60;
         }
 
-        .actions { margin-top: 40px; margin-bottom: 50px; }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pulse-animation { animation: pulse 0.3s ease-in-out; }
+
         .btn-reset {
-            background: transparent;
-            border: 1px solid #e74c3c;
-            color: #e74c3c;
-            padding: 10px 20px;
-            border-radius: 5px;
+            margin-top: 40px;
+            background: none;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 12px;
+            border-radius: 8px;
+            width: 100%;
             cursor: pointer;
         }
 
-        /* Mobile tweaks */
         @media (max-width: 400px) {
-            .grid { gap: 5px; }
-            .btn-deposit { font-size: 12px; padding: 10px 0; }
+            .grid { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+            .cell-date { font-size: 0.8em; }
+            .cell-value { font-size: 0.7em; }
         }
     </style>
 </head>
@@ -116,108 +163,160 @@
     <div class="dashboard">
         <div class="total-label">Total Guardado</div>
         <div class="total-value" id="totalDisplay">R$ 0,00</div>
+
+        <div class="config-area">
+            <label for="startDate">📅 Data de Início do Desafio:</label>
+            <input type="date" id="startDate" onchange="handleStartDateChange()">
+        </div>
+
         <div class="progress-bar-bg">
             <div class="progress-bar-fill" id="progressBar"></div>
         </div>
-        <div style="font-size: 0.8em; margin-top: 5px; color:#888;">Meta: R$ 40.200,00</div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.75em; color: #aaa; margin-top: 4px;">
+            <span id="percentText">0%</span>
+            <span>Meta: R$ 40.200</span>
+        </div>
     </div>
 
     <div class="container">
-        <h2>Parte 1 (R$ 1 a 200)</h2>
+        <h2>Parte 1 (Dias 1 - 200)</h2>
         <div class="grid" id="gridPart1"></div>
 
-        <h2>Parte 2 (R$ 1 a 200)</h2>
+        <h2>Parte 2 (Dias 201 - 400)</h2>
         <div class="grid" id="gridPart2"></div>
 
-        <div class="actions">
-            <button class="btn-reset" onclick="resetData()">Zerar Tudo (Reiniciar)</button>
-        </div>
-        
-        <p style="text-align: center; font-style: italic; color: #aaa; font-size: 0.9em;">
-            "Ebenézer: Até aqui nos ajudou o Senhor."
-        </p>
+        <button class="btn-reset" onclick="resetData()">Reiniciar Tudo</button>
     </div>
 
     <script>
-        // Configuração
         const totalMeta = 40200;
-        let savedData = JSON.parse(localStorage.getItem('desafio400_data')) || { part1: [], part2: [] };
+        let savedData = JSON.parse(localStorage.getItem('desafio400_v4')) || { 
+            part1: [], 
+            part2: [], 
+            startDate: null 
+        };
 
-        // Inicialização
         function init() {
-            renderGrid('gridPart1', 'part1');
-            renderGrid('gridPart2', 'part2');
+            // Se tiver data salva, coloca no input
+            if(savedData.startDate) {
+                document.getElementById('startDate').value = savedData.startDate;
+            }
+            
+            renderGrids();
             updateDashboard();
         }
 
-        // Renderiza os botões dinamicamente
-        function renderGrid(elementId, partKey) {
+        // --- Gerenciamento de Datas ---
+        function handleStartDateChange() {
+            const inputVal = document.getElementById('startDate').value;
+            if(inputVal) {
+                savedData.startDate = inputVal;
+                saveData();
+                renderGrids(); // Re-renderiza para atualizar as datas nos botões
+            }
+        }
+
+        function getDateForIndex(daysToAdd) {
+            if(!savedData.startDate) return null;
+            
+            // Cria a data baseada no input (adiciona T00:00 para evitar fuso horário errado)
+            const date = new Date(savedData.startDate + 'T00:00:00');
+            date.setDate(date.getDate() + daysToAdd);
+            
+            // Formata DD/MM
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            return `${day}/${month}`;
+        }
+
+        function isToday(daysToAdd) {
+            if(!savedData.startDate) return false;
+            const cellDate = new Date(savedData.startDate + 'T00:00:00');
+            cellDate.setDate(cellDate.getDate() + daysToAdd);
+            
+            const today = new Date();
+            return cellDate.toDateString() === today.toDateString();
+        }
+
+        // --- Renderização ---
+        function renderGrids() {
+            createGridHTML('gridPart1', 'part1', 0); // Começa do dia 0
+            createGridHTML('gridPart2', 'part2', 200); // Começa do dia 200 (continuação)
+        }
+
+        function createGridHTML(elementId, partKey, offsetDays) {
             const container = document.getElementById(elementId);
-            container.innerHTML = ''; // Limpa antes de renderizar
+            container.innerHTML = ''; 
 
             for (let i = 1; i <= 200; i++) {
-                const btn = document.createElement('button');
-                btn.className = 'btn-deposit';
-                btn.textContent = i;
+                const btn = document.createElement('div');
+                btn.className = 'cell';
+                btn.id = `btn-${partKey}-${i}`;
                 
-                // Verifica se já estava marcado
-                if (savedData[partKey].includes(i)) {
-                    btn.classList.add('checked');
-                }
+                // Lógica da Data
+                const daysIndex = (i - 1) + offsetDays; // Índice corrido (0 a 399)
+                const dateString = getDateForIndex(daysIndex);
+                const isCellToday = isToday(daysIndex);
 
-                // Evento de Click
-                btn.onclick = () => toggleDeposit(i, partKey, btn);
+                // HTML Interno da Célula
+                const displayDate = dateString ? dateString : `#${i}`; // Se não tiver data, mostra número
+                btn.innerHTML = `
+                    <span class="cell-date">${displayDate}</span>
+                    <span class="cell-value">R$ ${i}</span>
+                `;
+
+                // Classes e Estilos
+                if (savedData[partKey].includes(i)) btn.classList.add('checked');
+                if (isCellToday) btn.classList.add('today');
+
+                // Clique
+                btn.onclick = () => toggleCell(i, partKey, btn);
+                
                 container.appendChild(btn);
             }
         }
 
-        // Lógica de Marcar/Desmarcar
-        function toggleDeposit(value, partKey, btnElement) {
+        function toggleCell(value, partKey, element) {
             const index = savedData[partKey].indexOf(value);
+            
+            element.classList.add('pulse-animation');
+            setTimeout(() => element.classList.remove('pulse-animation'), 300);
 
             if (index === -1) {
-                // Adiciona
                 savedData[partKey].push(value);
-                btnElement.classList.add('checked');
+                element.classList.add('checked');
             } else {
-                // Remove
                 savedData[partKey].splice(index, 1);
-                btnElement.classList.remove('checked');
+                element.classList.remove('checked');
             }
-
-            saveAndUpdate();
-        }
-
-        // Salvar no Navegador e Atualizar Tela
-        function saveAndUpdate() {
-            localStorage.setItem('desafio400_data', JSON.stringify(savedData));
+            saveData();
             updateDashboard();
         }
 
-        // Calcular Totais
         function updateDashboard() {
             const sumPart1 = savedData.part1.reduce((a, b) => a + b, 0);
             const sumPart2 = savedData.part2.reduce((a, b) => a + b, 0);
             const total = sumPart1 + sumPart2;
+            const percent = (total / totalMeta) * 100;
 
-            // Formatação R$
             document.getElementById('totalDisplay').textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            
-            // Barra de Progresso
-            const percentage = (total / totalMeta) * 100;
-            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('percentText').textContent = percent.toFixed(1) + '%';
         }
 
-        // Função de Reset
+        function saveData() {
+            localStorage.setItem('desafio400_v4', JSON.stringify(savedData));
+        }
+
         function resetData() {
-            if(confirm("Tem certeza que deseja apagar todo o progresso?")) {
-                savedData = { part1: [], part2: [] };
-                saveAndUpdate();
-                init(); // Re-renderiza tudo limpo
+            if(confirm("Deseja apagar tudo e começar do zero?")) {
+                savedData = { part1: [], part2: [], startDate: null };
+                saveData();
+                document.getElementById('startDate').value = "";
+                init();
             }
         }
 
-        // Inicia o App
         init();
     </script>
 </body>
