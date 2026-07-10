@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Desafio 40k - Calendário</title>
+    <title>Desafio Flexível - Calendário</title>
     <style>
         :root {
             --primary: #2ecc71;
@@ -12,6 +12,7 @@
             --text: #333;
             --card-bg: #fff;
             --danger: #e74c3c;
+            --milestone-bg: #f39c12;
         }
 
         body {
@@ -42,25 +43,26 @@
 
         .config-area {
             background: #f1f2f6;
-            padding: 10px;
+            padding: 15px;
             border-radius: 8px;
             margin-bottom: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            text-align: left;
         }
 
-        .config-area label { font-size: 0.85em; color: #666; font-weight: bold; }
+        .config-item { display: flex; flex-direction: column; gap: 5px; }
+        .config-item.full { grid-column: span 2; }
+        .config-item label { font-size: 0.80em; color: #666; font-weight: bold; }
         
-        input[type="date"] {
+        input[type="date"], input[type="number"] {
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 6px;
             font-family: inherit;
             width: 100%;
-            max-width: 200px;
-            text-align: center;
+            box-sizing: border-box;
         }
 
         .total-value { font-size: 2.2em; font-weight: 800; color: var(--text); margin: 5px 0; }
@@ -80,6 +82,38 @@
             transition: width 0.5s ease;
         }
 
+        /* --- Marcos (Milestones) --- */
+        .milestones-container {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            text-align: left;
+        }
+        .milestones-title { font-size: 0.85em; font-weight: bold; color: #666; margin-bottom: 10px; }
+        .milestones-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .milestone-badge {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .milestone-badge.achieved {
+            background: var(--milestone-bg);
+            color: white;
+            border-color: var(--milestone-bg);
+            font-weight: bold;
+        }
+
         /* --- Grids --- */
         .container { width: 100%; max-width: 600px; padding-bottom: 60px; }
         
@@ -89,11 +123,14 @@
             border-bottom: 2px solid #eee; 
             padding-bottom: 8px; 
             margin-top: 30px; 
+            display: flex;
+            justify-content: space-between;
         }
+        h2 span { font-size: 0.8em; font-weight: normal; color: #999; }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr); /* 4 colunas para caber a data */
+            grid-template-columns: repeat(4, 1fr);
             gap: 6px;
         }
 
@@ -111,6 +148,7 @@
             align-items: center;
             justify-content: center;
             min-height: 45px;
+            transition: all 0.2s;
         }
 
         .cell-date { font-size: 0.9em; font-weight: bold; color: #555; margin-bottom: 2px; }
@@ -123,7 +161,6 @@
         }
         .cell.checked .cell-date, .cell.checked .cell-value { color: white; }
 
-        /* Destaque para o dia de HOJE */
         .cell.today {
             border: 2px solid #3498db;
             background-color: #ebf5fb;
@@ -149,6 +186,7 @@
             border-radius: 8px;
             width: 100%;
             cursor: pointer;
+            font-weight: bold;
         }
 
         @media (max-width: 400px) {
@@ -165,8 +203,18 @@
         <div class="total-value" id="totalDisplay">R$ 0,00</div>
 
         <div class="config-area">
-            <label for="startDate">📅 Data de Início do Desafio:</label>
-            <input type="date" id="startDate" onchange="handleStartDateChange()">
+            <div class="config-item full">
+                <label for="startDate">📅 Data de Início do Desafio:</label>
+                <input type="date" id="startDate" onchange="handleConfigChange()">
+            </div>
+            <div class="config-item">
+                <label for="goalAmount">🎯 Meta Total (R$):</label>
+                <input type="number" id="goalAmount" value="40200" step="100" onchange="handleConfigChange()">
+            </div>
+            <div class="config-item">
+                <label for="maxDaily">📈 Teto Diário (R$):</label>
+                <input type="number" id="maxDaily" value="200" step="10" onchange="handleConfigChange()">
+            </div>
         </div>
 
         <div class="progress-bar-bg">
@@ -174,56 +222,98 @@
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 0.75em; color: #aaa; margin-top: 4px;">
             <span id="percentText">0%</span>
-            <span>Meta: R$ 40.200</span>
+            <span id="goalText">Meta: R$ 40.200</span>
+        </div>
+
+        <!-- Nova área de Marcos -->
+        <div class="milestones-container">
+            <div class="milestones-title">🏆 Marcos do Desafio</div>
+            <div class="milestones-grid" id="milestonesGrid">
+                <!-- Preenchido via JS -->
+            </div>
         </div>
     </div>
 
-    <div class="container">
-        <h2>Parte 1 (Dias 1 - 200)</h2>
-        <div class="grid" id="gridPart1"></div>
-
-        <h2>Parte 2 (Dias 201 - 400)</h2>
-        <div class="grid" id="gridPart2"></div>
-
+    <div class="container" id="cyclesContainer">
+        <!-- Ciclos gerados via JS -->
+    </div>
+    
+    <div class="container" style="padding-top: 0;">
         <button class="btn-reset" onclick="resetData()">Reiniciar Tudo</button>
     </div>
 
     <script>
-        const totalMeta = 40200;
-        let savedData = JSON.parse(localStorage.getItem('desafio400_v4')) || { 
-            part1: [], 
-            part2: [], 
-            startDate: null 
+        // Dados principais
+        let savedData = JSON.parse(localStorage.getItem('desafio_flex_v1')) || { 
+            checkedDays: [], // Agora salvamos o índice global do dia (0, 1, 2...)
+            startDate: null,
+            goalAmount: 40200,
+            maxDaily: 200
         };
 
+        // Marcos que queremos monitorar
+        const milestoneTargets = [100, 500, 1000, 5000, 10000, 20000, 30000, 40000];
+        let generatedDays = []; // Array de objetos { index, value, cycle }
+
         function init() {
-            // Se tiver data salva, coloca no input
-            if(savedData.startDate) {
-                document.getElementById('startDate').value = savedData.startDate;
-            }
+            if(savedData.startDate) document.getElementById('startDate').value = savedData.startDate;
+            document.getElementById('goalAmount').value = savedData.goalAmount || 40200;
+            document.getElementById('maxDaily').value = savedData.maxDaily || 200;
             
-            renderGrids();
+            buildPlan();
+        }
+
+        function handleConfigChange() {
+            const newStart = document.getElementById('startDate').value;
+            const newGoal = parseInt(document.getElementById('goalAmount').value) || 40200;
+            const newMax = parseInt(document.getElementById('maxDaily').value) || 200;
+
+            // Se o usuário mudar as regras de valor, os índices salvos podem não bater com a nova matemática.
+            // Para proteger o usuário, aplicamos a alteração e reconstruímos o plano.
+            savedData.startDate = newStart;
+            savedData.goalAmount = newGoal;
+            savedData.maxDaily = newMax;
+            
+            saveData();
+            buildPlan();
+        }
+
+        // --- Lógica Central: Geração Dinâmica ---
+        function buildPlan() {
+            generatedDays = [];
+            let currentSum = 0;
+            let dayIndex = 0;
+            let currentCycle = 1;
+            let valueInCycle = 1;
+
+            // Gera os dias até atingir (ou passar) a meta
+            while(currentSum < savedData.goalAmount) {
+                generatedDays.push({
+                    index: dayIndex,
+                    value: valueInCycle,
+                    cycle: currentCycle
+                });
+                
+                currentSum += valueInCycle;
+                dayIndex++;
+                valueInCycle++;
+
+                // Se atingiu o teto, zera para o próximo ciclo
+                if (valueInCycle > savedData.maxDaily) {
+                    valueInCycle = 1;
+                    currentCycle++;
+                }
+            }
+
+            renderCycles();
             updateDashboard();
         }
 
         // --- Gerenciamento de Datas ---
-        function handleStartDateChange() {
-            const inputVal = document.getElementById('startDate').value;
-            if(inputVal) {
-                savedData.startDate = inputVal;
-                saveData();
-                renderGrids(); // Re-renderiza para atualizar as datas nos botões
-            }
-        }
-
         function getDateForIndex(daysToAdd) {
             if(!savedData.startDate) return null;
-            
-            // Cria a data baseada no input (adiciona T00:00 para evitar fuso horário errado)
             const date = new Date(savedData.startDate + 'T00:00:00');
             date.setDate(date.getDate() + daysToAdd);
-            
-            // Formata DD/MM
             const day = String(date.getDate()).padStart(2, '0');
             const month = String(date.getMonth() + 1).padStart(2, '0');
             return `${day}/${month}`;
@@ -233,60 +323,69 @@
             if(!savedData.startDate) return false;
             const cellDate = new Date(savedData.startDate + 'T00:00:00');
             cellDate.setDate(cellDate.getDate() + daysToAdd);
-            
             const today = new Date();
             return cellDate.toDateString() === today.toDateString();
         }
 
         // --- Renderização ---
-        function renderGrids() {
-            createGridHTML('gridPart1', 'part1', 0); // Começa do dia 0
-            createGridHTML('gridPart2', 'part2', 200); // Começa do dia 200 (continuação)
-        }
-
-        function createGridHTML(elementId, partKey, offsetDays) {
-            const container = document.getElementById(elementId);
+        function renderCycles() {
+            const container = document.getElementById('cyclesContainer');
             container.innerHTML = ''; 
 
-            for (let i = 1; i <= 200; i++) {
-                const btn = document.createElement('div');
-                btn.className = 'cell';
-                btn.id = `btn-${partKey}-${i}`;
+            // Agrupa os dias por ciclo para organizar visualmente
+            const cycles = {};
+            generatedDays.forEach(day => {
+                if(!cycles[day.cycle]) cycles[day.cycle] = [];
+                cycles[day.cycle].push(day);
+            });
+
+            // Cria o HTML de cada Ciclo
+            for (const [cycleNum, days] of Object.entries(cycles)) {
+                const cycleTotal = days.reduce((a, b) => a + b.value, 0);
                 
-                // Lógica da Data
-                const daysIndex = (i - 1) + offsetDays; // Índice corrido (0 a 399)
-                const dateString = getDateForIndex(daysIndex);
-                const isCellToday = isToday(daysIndex);
+                const title = document.createElement('h2');
+                title.innerHTML = `Ciclo ${cycleNum} <span>R$ ${cycleTotal}</span>`;
+                container.appendChild(title);
 
-                // HTML Interno da Célula
-                const displayDate = dateString ? dateString : `#${i}`; // Se não tiver data, mostra número
-                btn.innerHTML = `
-                    <span class="cell-date">${displayDate}</span>
-                    <span class="cell-value">R$ ${i}</span>
-                `;
+                const grid = document.createElement('div');
+                grid.className = 'grid';
 
-                // Classes e Estilos
-                if (savedData[partKey].includes(i)) btn.classList.add('checked');
-                if (isCellToday) btn.classList.add('today');
+                days.forEach(day => {
+                    const btn = document.createElement('div');
+                    btn.className = 'cell';
+                    btn.id = `btn-day-${day.index}`;
+                    
+                    const dateString = getDateForIndex(day.index);
+                    const isCellToday = isToday(day.index);
+                    const displayDate = dateString ? dateString : `#${day.index + 1}`;
 
-                // Clique
-                btn.onclick = () => toggleCell(i, partKey, btn);
-                
-                container.appendChild(btn);
+                    btn.innerHTML = `
+                        <span class="cell-date">${displayDate}</span>
+                        <span class="cell-value">R$ ${day.value}</span>
+                    `;
+
+                    if (savedData.checkedDays.includes(day.index)) btn.classList.add('checked');
+                    if (isCellToday) btn.classList.add('today');
+
+                    btn.onclick = () => toggleCell(day.index, btn);
+                    grid.appendChild(btn);
+                });
+
+                container.appendChild(grid);
             }
         }
 
-        function toggleCell(value, partKey, element) {
-            const index = savedData[partKey].indexOf(value);
+        function toggleCell(dayIndex, element) {
+            const pos = savedData.checkedDays.indexOf(dayIndex);
             
             element.classList.add('pulse-animation');
             setTimeout(() => element.classList.remove('pulse-animation'), 300);
 
-            if (index === -1) {
-                savedData[partKey].push(value);
+            if (pos === -1) {
+                savedData.checkedDays.push(dayIndex);
                 element.classList.add('checked');
             } else {
-                savedData[partKey].splice(index, 1);
+                savedData.checkedDays.splice(pos, 1);
                 element.classList.remove('checked');
             }
             saveData();
@@ -294,23 +393,79 @@
         }
 
         function updateDashboard() {
-            const sumPart1 = savedData.part1.reduce((a, b) => a + b, 0);
-            const sumPart2 = savedData.part2.reduce((a, b) => a + b, 0);
-            const total = sumPart1 + sumPart2;
-            const percent = (total / totalMeta) * 100;
+            // 1. Calcula Total Guardado
+            let currentSaved = 0;
+            savedData.checkedDays.forEach(index => {
+                const dayObj = generatedDays.find(d => d.index === index);
+                if(dayObj) currentSaved += dayObj.value;
+            });
 
-            document.getElementById('totalDisplay').textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            // 2. Atualiza Textos
+            const percent = Math.min((currentSaved / savedData.goalAmount) * 100, 100);
+            document.getElementById('totalDisplay').textContent = currentSaved.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             document.getElementById('progressBar').style.width = percent + '%';
             document.getElementById('percentText').textContent = percent.toFixed(1) + '%';
+            document.getElementById('goalText').textContent = `Meta: R$ ${savedData.goalAmount.toLocaleString('pt-BR')}`;
+
+            // 3. Atualiza os Marcos (Milestones)
+            renderMilestones(currentSaved);
+        }
+
+        function renderMilestones(currentSaved) {
+            const container = document.getElementById('milestonesGrid');
+            container.innerHTML = '';
+
+            // Calcula em que dia previsto cada marco ocorrerá (se a pessoa não falhar)
+            let cumulative = 0;
+            const milestoneDays = {};
+            let currentTargetIndex = 0;
+
+            for (let i = 0; i < generatedDays.length; i++) {
+                cumulative += generatedDays[i].value;
+                
+                // Enquanto a soma acumulada for maior ou igual ao marco atual
+                while (currentTargetIndex < milestoneTargets.length && cumulative >= milestoneTargets[currentTargetIndex]) {
+                    const target = milestoneTargets[currentTargetIndex];
+                    // Só adiciona se o marco for menor ou igual à meta final
+                    if (target <= savedData.goalAmount) {
+                        milestoneDays[target] = {
+                            dayIndex: i,
+                            date: getDateForIndex(i) || `Dia ${i + 1}`
+                        };
+                    }
+                    currentTargetIndex++;
+                }
+            }
+
+            // Cria as tags na tela
+            milestoneTargets.forEach(target => {
+                if(target > savedData.goalAmount) return; // Não exibe marcos maiores que a meta
+
+                const info = milestoneDays[target];
+                const isAchieved = currentSaved >= target;
+                const dateText = info ? info.date : '--';
+
+                const badge = document.createElement('div');
+                badge.className = `milestone-badge ${isAchieved ? 'achieved' : ''}`;
+                
+                // Se atingido, mostra um check. Se não, mostra a data prevista.
+                const icon = isAchieved ? '✅' : '🎯';
+                const subtext = isAchieved ? 'Atingido!' : dateText;
+
+                badge.innerHTML = `<span>${icon} R$ ${target >= 1000 ? (target/1000)+'k' : target}</span> <span style="font-size: 0.8em; opacity: 0.8;">(${subtext})</span>`;
+                container.appendChild(badge);
+            });
         }
 
         function saveData() {
-            localStorage.setItem('desafio400_v4', JSON.stringify(savedData));
+            localStorage.setItem('desafio_flex_v1', JSON.stringify(savedData));
         }
 
         function resetData() {
             if(confirm("Deseja apagar tudo e começar do zero?")) {
-                savedData = { part1: [], part2: [], startDate: null };
+                savedData.checkedDays = [];
+                savedData.startDate = null;
+                // Mantém as configurações de meta e teto
                 saveData();
                 document.getElementById('startDate').value = "";
                 init();
